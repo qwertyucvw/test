@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <chrono>
 #include <fstream>
+
+#include <iomanip>
+#include <cstring>
 #include <random>
 #include <sstream>
 #include <filesystem>
 #include <cctype>
-#include <iomanip>
-#include <cstring>
-
 namespace fs = std::filesystem;
 
 // Генерация JSON с автоматическим пересчетом total_time
