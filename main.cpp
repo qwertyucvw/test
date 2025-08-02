@@ -10,6 +10,7 @@
 
 namespace fs = std::filesystem;
 
+// Генерация JSON с добавлением username
 std::string generate_json(const std::string& username, double gen_time, double sort_time, bool sorted) {
     std::stringstream json;
     json << "{";
@@ -22,8 +23,9 @@ std::string generate_json(const std::string& username, double gen_time, double s
     return json.str();
 }
 
+// Проверка валидности никнейма
 bool is_valid_username(const std::string& username) {
-    if (username.empty()) return false;
+    if (username.empty() || username.size() > 30) return false;
     for (char c : username) {
         if (!std::isalnum(c) && c != '_' && c != '-') {
             return false;
@@ -41,7 +43,7 @@ int main(int argc, char* argv[]) {
     
     // Проверяем валидность никнейма
     if (!is_valid_username(username)) {
-        std::cerr << "Error: Invalid username. Use only alphanumeric characters, underscores and hyphens.\n";
+        std::cerr << "Error: Invalid username. Use only alphanumeric characters, underscores and hyphens (max 30 chars).\n";
         return 1;
     }
 
