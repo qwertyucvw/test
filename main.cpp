@@ -1,13 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+
+#include <filesystem>
+#include <cctype>
 #include <chrono>
 #include <fstream>
 #include <random>
 #include <sstream>
-#include <filesystem>
-#include <cctype>
-
 namespace fs = std::filesystem;
 
 // Генерация JSON с добавлением username
