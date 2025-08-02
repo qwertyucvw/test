@@ -23,10 +23,25 @@ jobs:
       with:
         python-version: '3.x'
 
-    - name: Create results directory
-      run: mkdir -p results
+    - name: Install C++ dependencies
+      run: sudo apt-get update && sudo apt-get install -y build-essential
 
-    - name: Install dependencies
+    - name: Configure CMake
+      run: cmake -B build
+
+    - name: Build project
+      run: cmake --build build
+
+    - name: Run sorting tests
+      run: |
+        mkdir -p results
+        ./build/run github_runner_1
+        ./build/run github_runner_2
+        ./build/run github_runner_3
+        echo "Generated files:"
+        ls -l results/
+
+    - name: Install Python dependencies
       run: pip install matplotlib numpy python-dateutil tabulate
 
     - name: Generate leaderboard
