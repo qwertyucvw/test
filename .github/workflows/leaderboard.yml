@@ -1,7 +1,9 @@
 name: update-leaderboard
 
+# Добавить разрешения в начало файла
 permissions:
   contents: write
+  actions: read
 
 on:
   schedule:
@@ -13,11 +15,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
+        # Использовать токен с правами записи
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
 
+    - name: Clean old results
+      run: |
+        # Удалить проблемные файлы
+        rm -f results/result.json results/results.json results/unknown.json
+        mkdir -p results
+        
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -34,15 +44,18 @@ jobs:
 
     - name: Run sorting tests
       run: |
-        mkdir -p results
-        ./build/run github_runner_1
-        ./build/run github_runner_2
-        ./build/run github_runner_3
-        echo "Generated files:"
+        ./build/run github_runner_quicksort
+        ./build/run github_runner_mergesort
+        ./build/run github_runner_heapsort
+        echo "Generated results:"
         ls -l results/
 
     - name: Install Python dependencies
       run: pip install matplotlib numpy python-dateutil tabulate
+
+    - name: Run validation
+      run: |
+        python3 result_checker.py || echo "Validation errors detected"
 
     - name: Generate leaderboard
       run: python3 leaderboard.py
