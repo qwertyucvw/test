@@ -1,6 +1,5 @@
 name: update-leaderboard
 
-# Добавить разрешения в начало файла
 permissions:
   contents: write
   actions: read
@@ -15,19 +14,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       with:
-        # Использовать токен с правами записи
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
 
     - name: Clean old results
       run: |
-        # Удалить проблемные файлы
-        rm -f results/result.json results/results.json results/unknown.json
+        # Удаляем старые файлы в неправильном формате
+        rm -f result.json results.json unknown.json
         mkdir -p results
-        
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -44,9 +41,14 @@ jobs:
 
     - name: Run sorting tests
       run: |
+        # Удаляем старый файл result.json если существует
+        rm -f result.json
+        
+        # Запускаем тесты с разными никнеймами
         ./build/run github_runner_quicksort
         ./build/run github_runner_mergesort
         ./build/run github_runner_heapsort
+        
         echo "Generated results:"
         ls -l results/
 
