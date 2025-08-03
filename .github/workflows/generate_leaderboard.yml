@@ -12,8 +12,13 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write 
+    
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -34,4 +39,4 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add leaderboard_*.png
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-generated leaderboard image" && git push)
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-generated leaderboard image [skip ci]" && git push)
