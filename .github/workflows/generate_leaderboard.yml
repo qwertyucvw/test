@@ -5,19 +5,19 @@ on:
     paths:
       - 'LEADERBOARD.md'
   schedule:
-    - cron: '0 0 * * *'  
+    - cron: '0 0 * * *'  # Каждый день в полночь
   workflow_dispatch:
 
 jobs:
   update-leaderboard:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  
+      contents: write
     
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0 
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -38,44 +38,77 @@ jobs:
 
         def generate_image():
             try:
-                with open('LEADERBOARD.md', 'r') as f:
+                with open('LEADERBOARD.md', 'r', encoding='utf-8') as f:
                     content = f.read()
-
-                table_match = re.search(r'Rank.*?\n-+\n(.*?)\n\n', content, re.DOTALL)
-                if not table_match:
-                    raise ValueError("Table not found in markdown file")
                 
-                rows = [row.split('|')[1:-1] for row in table_match.group(1).split('\n') if row.strip()]
-                rows = [[cell.strip() for cell in row] for row in rows]
-  
+                # Ищем начало таблицы
+                table_start = content.find('Rank | Username | Total Time (s)')
+                if table_start == -1:
+                    raise ValueError("Не найдена таблица лидеров")
+                
+                # Извлекаем строки таблицы
+                table_lines = [line.strip() for line in content[table_start:].split('\n') 
+                             if line.strip() and '|' in line and '----' not in line][:10]  # Берем первые 10 записей
+                
+                if len(table_lines) < 2:
+                    raise ValueError("Недостаточно данных в таблице")
+                
+                # Обрабатываем данные
+                headers = [h.strip() for h in table_lines[0].split('|')]
+                data = []
+                for line in table_lines[1:]:
+                    parts = [p.strip() for p in line.split('|')]
+                    if len(parts) >= 3:  # Нужны минимум Rank, Username, Time
+                        data.append({
+                            'rank': parts[0],
+                            'username': parts[1],
+                            'time': parts[2] + 's' if parts[2] else ''
+                        })
+                
+                # Создаем изображение
                 width = 600
                 row_height = 50
-                header_height = 60
-                img = Image.new('RGB', (width, header_height + len(rows)*row_height), (240, 240, 240))
-                draw = ImageDraw.Draw(img)
-
-                draw.rectangle([0, 0, width, header_height], fill=(50, 100, 150))
-                draw.text((50, header_height/2), "Rank", fill='white', anchor='lm')
-                draw.text((200, header_height/2), "Username", fill='white', anchor='lm')
-                draw.text((450, header_height/2), "Time (s)", fill='white', anchor='lm')
+                header_height = 70
+                img_height = header_height + len(data) * row_height
                 
-                for i, row in enumerate(rows):
-                    y = header_height + i*row_height
-                    fill = (255, 255, 255) if i%2 else (230, 240, 250)
-                    draw.rectangle([0, y, width, y+row_height], fill=fill)
+                img = Image.new('RGB', (width, img_height), (245, 245, 245))
+                draw = ImageDraw.Draw(img)
+                
+                try:
+                    font = ImageFont.truetype("DejaVuSans.ttf", 22)
+                    bold_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
+                except:
+                    font = ImageFont.load_default()
+                    bold_font = font
+                
+                # Рисуем заголовок
+                draw.rectangle([0, 0, width, header_height], fill=(30, 100, 180))
+                draw.text((50, header_height/2), "Rank", font=bold_font, fill='white', anchor='lm')
+                draw.text((200, header_height/2), "Username", font=bold_font, fill='white', anchor='lm')
+                draw.text((450, header_height/2), "Time", font=bold_font, fill='white', anchor='lm')
+                
+                # Рисуем данные
+                for i, entry in enumerate(data):
+                    y = header_height + i * row_height
+                    fill = (255, 255, 255) if i % 2 == 0 else (235, 245, 255)
                     
-                    draw.text((50, y+row_height/2), row[0], fill='black', anchor='lm')
-                    draw.text((200, y+row_height/2), row[1], fill='black', anchor='lm')
-                    draw.text((450, y+row_height/2), row[2], fill='black', anchor='lm')
+                    draw.rectangle([0, y, width, y + row_height], fill=fill)
+                    draw.text((50, y + row_height/2), entry['rank'], font=font, fill='black', anchor='lm')
+                    draw.text((200, y + row_height/2), entry['username'], font=font, fill='black', anchor='lm')
+                    draw.text((450, y + row_height/2), entry['time'], font=font, fill='black', anchor='lm')
                 
                 img.save('leaderboard.png')
-                print("Image generated successfully")
+                print("Изображение успешно создано")
             
             except Exception as e:
-                print(f"Error: {str(e)}")
-                img = Image.new('RGB', (600, 100), (255, 200, 200))
+                print(f"Ошибка: {str(e)}")
+                # Создаем изображение с ошибкой
+                img = Image.new('RGB', (600, 100), (255, 230, 230))
                 draw = ImageDraw.Draw(img)
-                draw.text((300, 50), f"Error: {str(e)}", fill='red', anchor='mm')
+                draw.text((300, 40), "Ошибка генерации таблицы лидеров", fill='red', 
+                         font=ImageFont.load_default(size=20), anchor='mm')
+                draw.text((300, 70), str(e), fill='red', 
+                         font=ImageFont.load_default(size=16), anchor='mm')
                 img.save('leaderboard.png')
 
         generate_image()
@@ -86,5 +119,5 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add leaderboard.png
-        git commit -m "Update leaderboard image" || echo "No changes to commit"
+        git commit -m "Обновление таблицы лидеров [skip ci]" || echo "Нет изменений для коммита"
         git push
