@@ -6,37 +6,39 @@ on:
       - 'LEADERBOARD.md'
   schedule:
     - cron: '0 0 * * *'
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
-  generate:
+  generate-leaderboard:
     runs-on: ubuntu-latest
-    
     permissions:
-      contents: write 
+      contents: write
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
+        sudo apt-get update
+        sudo apt-get install -y python3-pil python3-pil.imagetk
         pip install pillow
-    
-    - name: Generate leaderboard image
+
+    - name: Generate image
       run: |
         python leaderboard_generator.py
-        
-    - name: Commit and push if image changed
+
+    - name: Commit and push changes
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        git add leaderboard_*.png
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-generated leaderboard image [skip ci]" && git push)
+        git add leaderboard.png
+        git commit -m "Auto-generated leaderboard image [skip ci]" || echo "No changes to commit"
+        git push
