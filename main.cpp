@@ -5,11 +5,11 @@
 #include <fstream>
 #include <random>
 #include <sstream>
+
+#include <cstring>
 #include <filesystem>
 #include <cctype>
 #include <iomanip>
-#include <cstring>
-
 namespace fs = std::filesystem;
 
 // Генерация JSON с автоматическим пересчетом total_time
