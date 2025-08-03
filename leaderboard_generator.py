@@ -4,67 +4,82 @@ import os
 def generate_leaderboard():
     try:
         with open('LEADERBOARD.md', 'r', encoding='utf-8') as f:
-            lines = [line.strip() for line in f.readlines() if line.strip()]
-        headers = []
-        data = []
-        for line in lines:
-            if line.startswith('|'):
-                parts = [p.strip() for p in line.split('|')[1:-1]]
-                if 'Rank' in parts and 'Username' in parts and 'Total Time' in parts:
-                    headers = parts
-                elif parts and len(parts) == len(headers):
-                    data.append(parts)
-        
-        if not headers or not data:
-            raise ValueError("Invalid table format in LEADERBOARD.md")
+            content = f.read()
 
+        table_lines = []
+        in_table = False
+        for line in content.split('\n'):
+            if line.startswith('|') and ('Rank' in line or '-----' in line or in_table):
+                in_table = True
+                table_lines.append(line.strip())
+        
+        if len(table_lines) < 3:
+            raise ValueError("Not enough table rows found")
+
+
+        headers = [h.strip() for h in table_lines[0].split('|')[1:-1]]
+        data = []
+        for line in table_lines[2:]:
+            parts = [p.strip() for p in line.split('|')[1:-1]]
+            if len(parts) == len(headers):
+                data.append(parts)
         rank_idx = headers.index('Rank')
         user_idx = headers.index('Username')
-        time_idx = [i for i, h in enumerate(headers) if 'Total Time' in h][0]
-
-        img_width = 600
+        time_idx = headers.index('Total Time (s)')
+        col_widths = [80, 200, 150]  # Rank, Username, Time
         row_height = 50
-        img_height = row_height * (len(data) + 1)
+        header_height = 60
+        img_width = sum(col_widths)
+        img_height = header_height + len(data) * row_height
         
-        img = Image.new('RGB', (img_width, img_height), (242, 242, 242))
+        img = Image.new('RGB', (img_width, img_height), (240, 240, 240))
         draw = ImageDraw.Draw(img)
         
         try:
-            font = ImageFont.truetype("DejaVuSans.ttf", 20)
-            bold_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
+            font = ImageFont.truetype("arial.ttf", 20)
+            bold_font = ImageFont.truetype("arialbd.ttf", 22)
         except:
             font = ImageFont.load_default()
             bold_font = font
-
-
-        headers = ['Rank', 'Username', 'Time (s)']
-        col_widths = [80, 350, 170]
-        for i, (header, width) in enumerate(zip(headers, col_widths)):
-            draw.rectangle([sum(col_widths[:i]), 0, sum(col_widths[:i+1]), row_height], 
-                          fill=(70, 130, 180))
-            draw.text((sum(col_widths[:i]) + width/2, row_height/2), 
+        x_pos = 0
+        headers_display = ['Rank', 'Username', 'Time (s)']
+        for i, (header, width) in enumerate(zip(headers_display, col_widths)):
+            draw.rectangle([x_pos, 0, x_pos + width, header_height], 
+                          fill=(50, 100, 150))
+            draw.text((x_pos + width/2, header_height/2), 
                      header, font=bold_font, fill='white', anchor='mm')
-
-
-        for row, entry in enumerate(data, 1):
-            y = row * row_height
-            rank = entry[rank_idx]
-            username = entry[user_idx]
-            time = entry[time_idx]
-
-            fill = (255, 255, 255) if row % 2 else (230, 240, 250)
-            draw.rectangle([0, y, img_width, y + row_height], fill=fill)
-            draw.text((col_widths[0]/2, y + row_height/2), rank, font=font, anchor='mm')
-            draw.text((col_widths[0] + col_widths[1]/2, y + row_height/2), username, font=font, anchor='mm')
-            draw.text((sum(col_widths[:2]) + col_widths[2]/2, y + row_height/2), time, font=font, anchor='mm')
+            x_pos += width
+        for row_idx, row in enumerate(data):
+            y_pos = header_height + row_idx * row_height
+            x_pos = 0
+            fill_color = (255, 255, 200) if row_idx == 0 else (255, 255, 255)
+            
+            for col_idx, width in enumerate(col_widths):
+                cell_value = ''
+                if col_idx == 0:
+                    cell_value = row[rank_idx]
+                elif col_idx == 1:
+                    cell_value = row[user_idx]
+                else:
+                    cell_value = row[time_idx]
+                
+                draw.rectangle([x_pos, y_pos, x_pos + width, y_pos + row_height], 
+                              fill=fill_color, outline=(220, 220, 220))
+                draw.text((x_pos + width/2, y_pos + row_height/2), 
+                         cell_value, font=font, fill='black', anchor='mm')
+                x_pos += width
         img.save('leaderboard.png')
-        print("Successfully generated leaderboard.png")
+        print("Leaderboard image generated successfully")
         
     except Exception as e:
-        print(f"Error generating leaderboard: {str(e)}")
-        img = Image.new('RGB', (600, 100), (255, 200, 200))
+        print(f"Error: {str(e)}")
+
+        img = Image.new('RGB', (600, 150), (255, 230, 230))
         draw = ImageDraw.Draw(img)
-        draw.text((300, 50), f"Error: {str(e)}", fill='red', anchor='mm')
+        draw.text((300, 50), "Error generating leaderboard", fill='red', 
+                 font=ImageFont.load_default(), anchor='mm')
+        draw.text((300, 100), str(e), fill='red', 
+                 font=ImageFont.load_default(size=14), anchor='mm')
         img.save('leaderboard.png')
 
 if __name__ == "__main__":
