@@ -1,24 +1,23 @@
-name: Generate Leaderboard Image
+name: Update Leaderboard Image
 
 on:
   push:
     paths:
       - 'LEADERBOARD.md'
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'  
   workflow_dispatch:
 
 jobs:
-  generate-leaderboard:
+  update-leaderboard:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  
     
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0 
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -28,17 +27,64 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-pil python3-pil.imagetk
+        sudo apt-get install -y python3-pil
         pip install pillow
 
-    - name: Generate image
+    - name: Generate leaderboard image
       run: |
-        python leaderboard_generator.py
+        python << 'EOF'
+        from PIL import Image, ImageDraw, ImageFont
+        import re
+
+        def generate_image():
+            try:
+                with open('LEADERBOARD.md', 'r') as f:
+                    content = f.read()
+
+                table_match = re.search(r'Rank.*?\n-+\n(.*?)\n\n', content, re.DOTALL)
+                if not table_match:
+                    raise ValueError("Table not found in markdown file")
+                
+                rows = [row.split('|')[1:-1] for row in table_match.group(1).split('\n') if row.strip()]
+                rows = [[cell.strip() for cell in row] for row in rows]
+  
+                width = 600
+                row_height = 50
+                header_height = 60
+                img = Image.new('RGB', (width, header_height + len(rows)*row_height), (240, 240, 240))
+                draw = ImageDraw.Draw(img)
+
+                draw.rectangle([0, 0, width, header_height], fill=(50, 100, 150))
+                draw.text((50, header_height/2), "Rank", fill='white', anchor='lm')
+                draw.text((200, header_height/2), "Username", fill='white', anchor='lm')
+                draw.text((450, header_height/2), "Time (s)", fill='white', anchor='lm')
+                
+                for i, row in enumerate(rows):
+                    y = header_height + i*row_height
+                    fill = (255, 255, 255) if i%2 else (230, 240, 250)
+                    draw.rectangle([0, y, width, y+row_height], fill=fill)
+                    
+                    draw.text((50, y+row_height/2), row[0], fill='black', anchor='lm')
+                    draw.text((200, y+row_height/2), row[1], fill='black', anchor='lm')
+                    draw.text((450, y+row_height/2), row[2], fill='black', anchor='lm')
+                
+                img.save('leaderboard.png')
+                print("Image generated successfully")
+            
+            except Exception as e:
+                print(f"Error: {str(e)}")
+                img = Image.new('RGB', (600, 100), (255, 200, 200))
+                draw = ImageDraw.Draw(img)
+                draw.text((300, 50), f"Error: {str(e)}", fill='red', anchor='mm')
+                img.save('leaderboard.png')
+
+        generate_image()
+        EOF
 
     - name: Commit and push changes
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add leaderboard.png
-        git commit -m "Auto-generated leaderboard image [skip ci]" || echo "No changes to commit"
+        git commit -m "Update leaderboard image" || echo "No changes to commit"
         git push
