@@ -5,7 +5,6 @@ def generate_leaderboard():
     try:
         with open('LEADERBOARD.md', 'r', encoding='utf-8') as f:
             content = f.read()
-
         table_lines = []
         in_table = False
         for line in content.split('\n'):
@@ -15,8 +14,6 @@ def generate_leaderboard():
         
         if len(table_lines) < 3:
             raise ValueError("Not enough table rows found")
-
-
         headers = [h.strip() for h in table_lines[0].split('|')[1:-1]]
         data = []
         for line in table_lines[2:]:
@@ -41,6 +38,7 @@ def generate_leaderboard():
         except:
             font = ImageFont.load_default()
             bold_font = font
+
         x_pos = 0
         headers_display = ['Rank', 'Username', 'Time (s)']
         for i, (header, width) in enumerate(zip(headers_display, col_widths)):
@@ -49,9 +47,11 @@ def generate_leaderboard():
             draw.text((x_pos + width/2, header_height/2), 
                      header, font=bold_font, fill='white', anchor='mm')
             x_pos += width
+
         for row_idx, row in enumerate(data):
             y_pos = header_height + row_idx * row_height
             x_pos = 0
+        
             fill_color = (255, 255, 200) if row_idx == 0 else (255, 255, 255)
             
             for col_idx, width in enumerate(col_widths):
@@ -68,12 +68,13 @@ def generate_leaderboard():
                 draw.text((x_pos + width/2, y_pos + row_height/2), 
                          cell_value, font=font, fill='black', anchor='mm')
                 x_pos += width
+
         img.save('leaderboard.png')
         print("Leaderboard image generated successfully")
         
     except Exception as e:
         print(f"Error: {str(e)}")
-
+        # Create error image with more details
         img = Image.new('RGB', (600, 150), (255, 230, 230))
         draw = ImageDraw.Draw(img)
         draw.text((300, 50), "Error generating leaderboard", fill='red', 
