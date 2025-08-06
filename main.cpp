@@ -1,11 +1,11 @@
 #include <iostream>
-#include <vector>
-#include <algorithm>
+
+
 #include <chrono>
 #include <fstream>
 #include <sstream>
-
-
+#include <vector>
+#include <algorithm>
 struct Result {
     double generation_time;
     double sorting_time;
